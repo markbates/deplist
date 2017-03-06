@@ -1,9 +1,23 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"sort"
+	"strings"
+
 	"github.com/markbates/deplist"
 )
 
 func main() {
-	deplist.List()
+	deps, err := deplist.List()
+	if err != nil {
+		log.Fatal(err)
+	}
+	list := make([]string, len(deps), len(deps))
+	for k := range deps {
+		list = append(list, k)
+	}
+	sort.Strings(list)
+	fmt.Println(strings.Join(list, "\n"))
 }
