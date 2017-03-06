@@ -5,12 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
-func List() ([]string, error) {
-	deps := []string{}
+func List() (map[string]string, error) {
+	deps := map[string]string{}
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() && filepath.Base(path) != "vendor" {
 			cmd := exec.Command("go", "list", "-f", `'* {{ join .Deps  "\n"}}'`, path)
@@ -24,13 +23,12 @@ func List() ([]string, error) {
 			for _, g := range list {
 				if strings.Contains(g, "github.com") || strings.Contains(g, "bitbucket.org") {
 					fmt.Println(g)
-					deps = append(deps, g)
+					deps[g] = g
 				}
 			}
 		}
 		return nil
 	})
 
-	sort.Strings(deps)
 	return deps, err
 }
