@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	list := make([]string, len(deps), len(deps))
+	list := make([]string, 0, len(deps))
 	for k := range deps {
 		list = append(list, k)
 	}
