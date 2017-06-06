@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-	deps, err := deplist.List()
+	deps, err := deplist.List(os.Args[1:]...)
 	if err != nil {
 		log.Fatal(err)
 	}

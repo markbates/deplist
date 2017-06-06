@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-var commonSkips = []string{"vendor", ".git"}
+var commonSkips = []string{"vendor", ".git", "examples", "node_modules"}
 
 func List(skips ...string) (map[string]string, error) {
 	wg := &sync.WaitGroup{}
@@ -18,13 +18,12 @@ func List(skips ...string) (map[string]string, error) {
 	deps := map[string]string{}
 
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		base := filepath.Base(path)
-		if info.IsDir() {
-			for _, s := range skips {
-				if base == s {
-					return filepath.SkipDir
-				}
+		for _, s := range skips {
+			if strings.Contains(path, s) {
+				return filepath.SkipDir
 			}
+		}
+		if info.IsDir() {
 			wg.Add(1)
 			go func(path string) {
 				defer wg.Done()
@@ -40,7 +39,16 @@ func List(skips ...string) (map[string]string, error) {
 				for _, g := range list {
 					if strings.Contains(g, "github.com") || strings.Contains(g, "bitbucket.org") {
 						moot.Lock()
-						deps[g] = g
+						skip := false
+						for _, s := range skips {
+							if strings.Contains(g, s) {
+								skip = true
+								break
+							}
+						}
+						if !skip {
+							deps[g] = g
+						}
 						moot.Unlock()
 					}
 				}
