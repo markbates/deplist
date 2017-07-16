@@ -38,6 +38,7 @@ func List(skips ...string) (map[string]string, error) {
 
 				for _, g := range list {
 					if strings.Contains(g, "github.com") || strings.Contains(g, "bitbucket.org") {
+						g = strings.TrimPrefix(g, "'* ")
 						moot.Lock()
 						skip := false
 						for _, s := range skips {
