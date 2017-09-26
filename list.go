@@ -1,64 +1,83 @@
 package deplist
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 var commonSkips = []string{"vendor", ".git", "examples", "node_modules"}
 
+type lister struct {
+	root  string
+	skips []string
+	deps  map[string]string
+	moot  *sync.Mutex
+}
+
 func List(skips ...string) (map[string]string, error) {
-	wg := &sync.WaitGroup{}
-	moot := &sync.Mutex{}
+	pwd, _ := os.Getwd()
+	l := lister{
+		root:  pwd,
+		skips: append(skips, commonSkips...),
+		deps:  map[string]string{},
+		moot:  &sync.Mutex{},
+	}
+	wg := &errgroup.Group{}
 
-	skips = append(skips, commonSkips...)
-	deps := map[string]string{}
-
-	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		for _, s := range skips {
-			if strings.Contains(path, s) {
-				return filepath.SkipDir
-			}
-		}
-		if info.IsDir() {
-			wg.Add(1)
-			go func(path string) {
-				defer wg.Done()
-				cmd := exec.Command("go", "list", "-f", `'* {{ join .Deps  "\n"}}'`, "./"+path)
-				// fmt.Println(strings.Join(cmd.Args, " "))
-				b, err := cmd.Output()
-				if err != nil {
-					return
-				}
-
-				list := strings.Split(string(b), "\n")
-
-				for _, g := range list {
-					if strings.Contains(g, "github.com") || strings.Contains(g, "bitbucket.org") {
-						g = strings.TrimPrefix(g, "'* ")
-						moot.Lock()
-						skip := false
-						for _, s := range skips {
-							if strings.Contains(g, s) {
-								skip = true
-								break
-							}
-						}
-						if !skip {
-							deps[g] = g
-						}
-						moot.Unlock()
-					}
-				}
-			}(path)
-		}
+	err := filepath.Walk(pwd, func(path string, info os.FileInfo, err error) error {
+		wg.Go(func() error {
+			return l.process(path, info)
+		})
 		return nil
 	})
 
-	wg.Wait()
+	if err != nil {
+		return l.deps, errors.WithStack(err)
+	}
 
-	return deps, err
+	err = wg.Wait()
+
+	return l.deps, err
+}
+
+func (l *lister) add(dep string) {
+	l.moot.Lock()
+	defer l.moot.Unlock()
+	l.deps[dep] = dep
+}
+
+func (l *lister) process(path string, info os.FileInfo) error {
+	path = strings.TrimPrefix(path, l.root)
+	if info.IsDir() {
+
+		for _, s := range l.skips {
+			if strings.Contains(strings.ToLower(path), s) {
+				return nil
+			}
+		}
+
+		cmd := exec.Command("go", "list", "-e", "-f", `'* {{ join .Deps  "\n"}}'`, "./"+path)
+		b, err := cmd.Output()
+		if err != nil {
+			fmt.Println(string(b))
+			return errors.WithStack(err)
+		}
+
+		list := strings.Split(string(b), "\n")
+
+		for _, g := range list {
+			if strings.Contains(g, "github.com") || strings.Contains(g, "bitbucket.org") {
+				g = strings.TrimPrefix(g, "'* ")
+				l.add(g)
+			}
+		}
+	}
+	return nil
 }
