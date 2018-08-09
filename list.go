@@ -1,9 +1,8 @@
 package deplist
 
 import (
-	"fmt"
+	"go/build"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,6 +17,7 @@ type lister struct {
 	root  string
 	skips []string
 	deps  map[string]string
+	seen  map[string]bool
 	moot  *sync.Mutex
 }
 
@@ -27,6 +27,7 @@ func List(skips ...string) (map[string]string, error) {
 		root:  pwd,
 		skips: append(skips, commonSkips...),
 		deps:  map[string]string{},
+		seen:  map[string]bool{},
 		moot:  &sync.Mutex{},
 	}
 	wg := &errgroup.Group{}
@@ -48,6 +49,9 @@ func List(skips ...string) (map[string]string, error) {
 }
 
 func (l *lister) add(dep string) {
+	if dep == "." {
+		return
+	}
 	l.moot.Lock()
 	defer l.moot.Unlock()
 	l.deps[dep] = dep
@@ -55,6 +59,7 @@ func (l *lister) add(dep string) {
 
 func (l *lister) process(path string, info os.FileInfo) error {
 	path = strings.TrimPrefix(path, l.root)
+	path = strings.TrimPrefix(path, string(filepath.Separator))
 	if info.IsDir() {
 
 		for _, s := range l.skips {
@@ -63,21 +68,31 @@ func (l *lister) process(path string, info os.FileInfo) error {
 			}
 		}
 
-		cmd := exec.Command("go", "list", "-e", "-f", `'* {{ join .Deps  "\n"}}'`, "./"+path)
-		b, err := cmd.Output()
-		if err != nil {
-			fmt.Println(string(b))
+		return l.find(".", filepath.Dir(path))
+	}
+	return nil
+}
+
+func (l *lister) find(name string, dir string) error {
+	ctx := build.Default
+	pkg, err := ctx.Import(name, dir, build.IgnoreVendor)
+	if pkg.Goroot {
+		return nil
+	}
+	if err != nil {
+		if _, ok := errors.Cause(err).(*build.NoGoError); !ok {
 			return errors.WithStack(err)
 		}
-
-		list := strings.Split(string(b), "\n")
-
-		for _, g := range list {
-			if strings.Contains(g, "github.com") || strings.Contains(g, "bitbucket.org") {
-				g = strings.TrimPrefix(g, "'* ")
-				l.add(g)
-			}
+	}
+	for _, imp := range pkg.Imports {
+		if l.seen[imp] {
+			continue
+		}
+		l.seen[imp] = true
+		if err := l.find(imp, pkg.Dir); err != nil {
+			return errors.WithStack(err)
 		}
 	}
+	l.add(pkg.ImportPath)
 	return nil
 }
