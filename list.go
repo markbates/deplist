@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var commonSkips = []string{"vendor", ".git", "examples", "node_modules"}
+var commonSkips = []string{"vendor", ".git", "examples", "node_modules", ".idea"}
 
 type lister struct {
 	root  string
@@ -32,9 +32,9 @@ func List(skips ...string) (map[string]string, error) {
 	wg := &errgroup.Group{}
 
 	err := filepath.Walk(pwd, func(path string, info os.FileInfo, err error) error {
-		wg.Go(func() error {
+		if info.IsDir() {
 			return l.process(path, info)
-		})
+		}
 		return nil
 	})
 
