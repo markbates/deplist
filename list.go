@@ -49,7 +49,7 @@ func List(skips ...string) (map[string]string, error) {
 }
 
 func (l *lister) add(dep string) {
-	if dep == "." {
+	if dep == "." || dep == "C" {
 		return
 	}
 	l.moot.Lock()
