@@ -7,7 +7,6 @@ builds:
   env:
     - CGO_ENABLED=0
   main: ./deplist/main.go
-  binary: {{.Binary}}
 
 checksum:
   name_template: 'checksums.txt'
