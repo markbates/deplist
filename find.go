@@ -102,11 +102,11 @@ func viaModules(dir string) ([]string, error) {
 		}
 		tok := r.Syntax.Token
 		if len(tok) > 1 {
-			names = append(names, tok[1])
-			continue
-		}
-		if len(tok) > 0 {
-			names = append(names, tok[0])
+			var ind int
+			if tok[0] == "require" {
+				ind = 1
+			}
+			names = append(names, tok[ind])
 			continue
 		}
 	}
