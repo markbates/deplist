@@ -2,7 +2,7 @@ TAGS ?= ""
 GO_BIN ?= "go"
 
 install: 
-	$(GO_BIN) install -tags ${TAGS} -v ./.
+	$(GO_BIN) install -tags ${TAGS} -v ./deplist
 	make tidy
 
 tidy:
