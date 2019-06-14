@@ -1,23 +1,25 @@
 package deplist
 
 import (
+	"fmt"
 	"go/build"
 	"os"
 
-	"github.com/markbates/oncer"
-	"github.com/pkg/errors"
+	"github.com/markbates/deplist/internal/oncer"
 )
 
 func List(skips ...string) (map[string]string, error) {
-	oncer.Deprecate(0, "deplist.List", "Use deplist.FindImports instead")
+	oncer.Do("deplist.List", func() {
+		fmt.Println("deplist.List has been deprecated. Use deplist.FindImports instead")
+	})
 	deps := map[string]string{}
 	pwd, err := os.Getwd()
 	if err != nil {
-		return deps, errors.WithStack(err)
+		return deps, err
 	}
 	pkgs, err := FindImports(pwd, build.IgnoreVendor)
 	if err != nil {
-		return deps, errors.WithStack(err)
+		return deps, err
 	}
 	for _, p := range pkgs {
 		deps[p] = p

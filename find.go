@@ -1,6 +1,7 @@
 package deplist
 
 import (
+	"fmt"
 	"go/build"
 	"io/ioutil"
 	"path/filepath"
@@ -8,8 +9,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/envy"
-	"github.com/markbates/oncer"
-	"github.com/pkg/errors"
+	"github.com/markbates/deplist/internal/oncer"
 	"github.com/rogpeppe/go-internal/modfile"
 )
 
@@ -29,7 +29,7 @@ func viaImports(dir string, mode build.ImportMode) ([]string, error) {
 		ctx := build.Default
 
 		if len(ctx.SrcDirs()) == 0 {
-			err = errors.New("no src directories found")
+			err = fmt.Errorf("no src directories found")
 			return
 		}
 
@@ -37,8 +37,7 @@ func viaImports(dir string, mode build.ImportMode) ([]string, error) {
 
 		if err != nil {
 			if !strings.Contains(err.Error(), "cannot find package") {
-				if _, ok := errors.Cause(err).(*build.NoGoError); !ok {
-					err = errors.WithStack(err)
+				if _, ok := err.(*build.NoGoError); !ok {
 					return
 				}
 			}
@@ -88,7 +87,7 @@ func viaModules(dir string) ([]string, error) {
 	p := filepath.Join(dir, "go.mod")
 	moddata, err := ioutil.ReadFile(p)
 	if err != nil {
-		return names, errors.New("go.mod cannot be read or does not exist while go module is enabled")
+		return names, fmt.Errorf("go.mod cannot be read or does not exist while go module is enabled")
 	}
 	f, err := modfile.Parse(p, moddata, func(path, version string) (string, error) {
 		return version, nil
