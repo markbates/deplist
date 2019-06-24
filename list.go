@@ -5,7 +5,7 @@ import (
 	"go/build"
 	"os"
 
-	"github.com/markbates/deplist/internal/oncer"
+	"github.com/markbates/deplist/internal/takeon/github.com/markbates/oncer"
 )
 
 func List(skips ...string) (map[string]string, error) {

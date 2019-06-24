@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/envy"
-	"github.com/markbates/deplist/internal/oncer"
+	"github.com/markbates/deplist/internal/takeon/github.com/markbates/oncer"
 	"github.com/rogpeppe/go-internal/modfile"
 )
 

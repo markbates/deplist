@@ -9,7 +9,7 @@ var onces = &sync.Map{}
 func Do(name string, fn func()) {
 	o, _ := onces.LoadOrStore(name, &sync.Once{})
 	if once, ok := o.(*sync.Once); ok {
-		once.Do(fn)
+		once.Do(log(name, fn))
 	}
 }
 
@@ -21,5 +21,6 @@ func Reset(names ...string) {
 
 	for _, n := range names {
 		onces.Delete(n)
+		onces.Delete(deprecated + n)
 	}
 }
