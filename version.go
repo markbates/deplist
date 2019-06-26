@@ -1,3 +1,3 @@
 package deplist
 
-const Version = "v1.2.0"
+const Version = "v1.3.0"
